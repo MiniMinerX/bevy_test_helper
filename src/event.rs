@@ -1,40 +1,40 @@
 use bevy::app::{App, Plugin};
 use bevy::ecs::event::{EventCursor, EventId, EventIterator};
-use bevy::prelude::{Event, Events, World};
+use bevy::prelude::{BufferedEvent, Events, World};
 
 use bevy_test_helper_macro_impl::delegate_app;
 
 #[delegate_app]
 pub trait DirectEvents {
-    fn send<E: Event>(&mut self, event: E) -> EventId<E>;
+    fn send<E: BufferedEvent>(&mut self, event: E) -> EventId<E>;
 
-    fn send_default<E: Event + Default>(&mut self) -> EventId<E>;
+    fn send_default<E: BufferedEvent + Default>(&mut self) -> EventId<E>;
 
-    fn read_events<'a, E: Event>(&'a self, reader: &'a mut EventCursor<E>) -> EventIterator<'a, E>;
+    fn read_events<'a, E: BufferedEvent>(&'a self, reader: &'a mut EventCursor<E>) -> EventIterator<'a, E>;
 
-    fn read_last_event<'a, E: Event>(&'a self, reader: &'a mut EventCursor<E>) -> Option<&'a E> {
+    fn read_last_event<'a, E: BufferedEvent>(&'a self, reader: &'a mut EventCursor<E>) -> Option<&'a E> {
         self.read_events(reader).last()
     }
 
-    fn assert_event_comes<'a, E: Event>(&'a self, reader: &'a mut EventCursor<E>) {
+    fn assert_event_comes<'a, E: BufferedEvent>(&'a self, reader: &'a mut EventCursor<E>) {
         assert!(self.read_last_event(reader).is_some());
     }
 
-    fn assert_event_not_comes<'a, E: Event>(&'a self, reader: &'a mut EventCursor<E>) {
+    fn assert_event_not_comes<'a, E: BufferedEvent>(&'a self, reader: &'a mut EventCursor<E>) {
         assert!(self.read_last_event(reader).is_none());
     }
 }
 
 impl DirectEvents for World {
-    fn send<E: Event>(&mut self, event: E) -> EventId<E> {
+    fn send<E: BufferedEvent>(&mut self, event: E) -> EventId<E> {
         self.resource_mut::<Events<E>>().send(event)
     }
 
-    fn send_default<E: Event + Default>(&mut self) -> EventId<E> {
+    fn send_default<E: BufferedEvent + Default>(&mut self) -> EventId<E> {
         self.resource_mut::<Events<E>>().send_default()
     }
 
-    fn read_events<'a, E: Event>(&'a self, reader: &'a mut EventCursor<E>) -> EventIterator<'a, E> {
+    fn read_events<'a, E: BufferedEvent>(&'a self, reader: &'a mut EventCursor<E>) -> EventIterator<'a, E> {
         reader.read(self.resource::<Events<E>>())
     }
 }
@@ -62,7 +62,7 @@ impl Plugin for BevyTestHelperEventsPlugin {
 
 macro_rules! test_event {
     ($name: ident) => {
-        #[derive(Default, Eq, PartialEq, Copy, Clone, Event, Hash, Debug)]
+        #[derive(Default, Eq, PartialEq, Copy, Clone, BufferedEvent, Hash, Debug)]
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub struct $name;
     };
